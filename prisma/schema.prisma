@@ -1,0 +1,271 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model University {
+  id         Int      @id @default(autoincrement())
+  name       String   @db.VarChar(200)
+  shortName  String   @db.VarChar(50)
+  themeColor String   @default("#635bff") @db.VarChar(20)
+  address    String?  @db.Text
+  website    String?  @db.VarChar(200)
+  isSetup    Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("universities")
+}
+
+model Department {
+  id             Int           @id @default(autoincrement())
+  name           String        @db.VarChar(150)
+  code           String        @unique @db.VarChar(20)
+  programmeType  ProgrammeType @default(UG)
+  totalYears     Int           @default(3)
+  rollPrefix     String        @db.VarChar(10)
+  examRollPrefix String        @db.VarChar(10)
+  hodId          Int?          @unique
+  isActive       Boolean       @default(true)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  hod           User?          @relation("DeptHOD", fields: [hodId], references: [id])
+  users         User[]         @relation("DeptUsers")
+  students      Student[]
+  subjects      Subject[]
+  academicYears AcademicYear[]
+  semesters     Semester[]
+  holidays      Holiday[]
+
+  @@map("departments")
+}
+
+model User {
+  id           Int       @id @default(autoincrement())
+  name         String    @db.VarChar(150)
+  email        String?   @unique @db.VarChar(200)
+  username     String    @unique @db.VarChar(80)
+  passwordHash String    @db.VarChar(255)
+  role         UserRole  @default(TEACHER)
+  deptId       Int?
+  phone        String?   @db.VarChar(20)
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  department       Department?    @relation("DeptUsers", fields: [deptId], references: [id])
+  hodOfDept        Department?    @relation("DeptHOD")
+  subjectsTaught   Subject[]
+  attendanceMarked Attendance[]
+  notifications    Notification[]
+  aiLogs           AiLog[]
+
+  @@map("users")
+}
+
+model AcademicYear {
+  id        Int      @id @default(autoincrement())
+  deptId    Int
+  label     String   @db.VarChar(20)
+  startDate DateTime @db.Date
+  endDate   DateTime @db.Date
+  isCurrent Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  department Department @relation(fields: [deptId], references: [id], onDelete: Cascade)
+  semesters  Semester[]
+
+  @@unique([deptId, label])
+  @@map("academic_years")
+}
+
+model Semester {
+  id             Int      @id @default(autoincrement())
+  deptId         Int
+  academicYearId Int
+  semNumber      Int
+  yearOfStudy    Int
+  startDate      DateTime @db.Date
+  endDate        DateTime @db.Date
+  isActive       Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  department   Department   @relation(fields: [deptId], references: [id], onDelete: Cascade)
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  subjects     Subject[]
+  students     Student[]
+
+  @@unique([deptId, semNumber, academicYearId])
+  @@map("semesters")
+}
+
+model Subject {
+  id        Int      @id @default(autoincrement())
+  deptId    Int
+  semId     Int
+  code      String   @db.VarChar(30)
+  name      String   @db.VarChar(150)
+  credits   Int      @default(4)
+  teacherId Int?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  department Department  @relation(fields: [deptId], references: [id], onDelete: Cascade)
+  semester   Semester    @relation(fields: [semId], references: [id], onDelete: Cascade)
+  teacher    User?       @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  attendance Attendance[]
+
+  @@unique([deptId, semId, code])
+  @@map("subjects")
+}
+
+model Student {
+  id            Int       @id @default(autoincrement())
+  deptId        Int
+  semId         Int
+  rollNo        String    @db.VarChar(30)
+  examRoll      String    @db.VarChar(30)
+  name          String    @db.VarChar(150)
+  phone         String?   @db.VarChar(20)
+  email         String?   @db.VarChar(200)
+  guardianName  String?   @db.VarChar(150)
+  guardianPhone String?   @db.VarChar(20)
+  address       String?   @db.Text
+  dateOfBirth   DateTime? @db.Date
+  gender        Gender?
+  yearOfStudy   Int
+  isActive      Boolean   @default(true)
+  enrolledAt    DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  department Department   @relation(fields: [deptId], references: [id], onDelete: Cascade)
+  semester   Semester     @relation(fields: [semId], references: [id], onDelete: Restrict)
+  attendance Attendance[]
+
+  @@unique([deptId, rollNo])
+  @@unique([deptId, examRoll])
+  @@map("students")
+}
+
+model Attendance {
+  id         Int              @id @default(autoincrement())
+  studentId  Int
+  subjectId  Int
+  date       DateTime         @db.Date
+  status     AttendanceStatus
+  markedById Int
+  source     AttendanceSource @default(MANUAL)
+  isLocked   Boolean          @default(false)
+  remarks    String?          @db.VarChar(300)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  student  Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subject  Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  markedBy User    @relation(fields: [markedById], references: [id], onDelete: Restrict)
+
+  @@unique([studentId, subjectId, date])
+  @@map("attendance")
+}
+
+model Holiday {
+  id        Int      @id @default(autoincrement())
+  deptId    Int?
+  date      DateTime @db.Date
+  reason    String   @db.VarChar(200)
+  isGlobal  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  department Department? @relation(fields: [deptId], references: [id], onDelete: Cascade)
+
+  @@map("holidays")
+}
+
+model Setting {
+  id     Int          @id @default(autoincrement())
+  key    String       @db.VarChar(100)
+  value  String       @db.Text
+  scope  SettingScope @default(GLOBAL)
+  deptId Int?
+
+  @@unique([key, scope, deptId])
+  @@map("settings")
+}
+
+model AiLog {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  inputText    String   @db.Text
+  parsedOutput String?  @db.Text
+  actionTaken  String?  @db.VarChar(300)
+  success      Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("ai_logs")
+}
+
+model Notification {
+  id        Int              @id @default(autoincrement())
+  userId    Int
+  type      NotificationType
+  title     String           @db.VarChar(200)
+  message   String           @db.Text
+  link      String?          @db.VarChar(300)
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  HOD
+  TEACHER
+}
+
+enum ProgrammeType {
+  UG
+  PG
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LEAVE
+}
+
+enum AttendanceSource {
+  MANUAL
+  AI
+  IMPORT
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum SettingScope {
+  GLOBAL
+  DEPARTMENT
+}
+
+enum NotificationType {
+  SHORTAGE_ALERT
+  ATTENDANCE_LOCKED
+  SYSTEM
+  HOLIDAY
+  ANNOUNCEMENT
+}
