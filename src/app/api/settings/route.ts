@@ -13,7 +13,7 @@ export async function POST(req:Request){
   if(s?.user?.role!=='SUPER_ADMIN')return NextResponse.json({error:'Forbidden'},{status:403})
   const body=await req.json()
   for(const [key,value] of Object.entries(body)){
-    await prisma.setting.upsert({where:{key_scope_deptId:{key,scope:'GLOBAL',deptId:null}},update:{value:String(value)},create:{key,value:String(value),scope:'GLOBAL'}})
+    await prisma.setting.upsert({where:{key_scope_deptId:{key,scope:'GLOBAL',deptId:undefined}},update:{value:String(value)},create:{key,value:String(value),scope:'GLOBAL'}})
   }
   return NextResponse.json({ok:true})
 }
