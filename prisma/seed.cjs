@@ -7,9 +7,10 @@ async function main(){
     await prisma.user.create({data:{name:'Super Admin',username:'superadmin',passwordHash:await bcrypt.hash('Admin@2025',12),role:'SUPER_ADMIN'}})
     console.log('✅  Super Admin\n    username: superadmin  password: Admin@2025\n    ⚠️  Change after first login!\n')
   }else{console.log('ℹ️   Super Admin exists\n')}
-  for(const [key,value] of[['shortage_threshold','75'],['attendance_lock_days','7'],['app_name','AttendEase']])
-    await prisma.setting.upsert({where:{key_scope_deptId:{key,scope:'GLOBAL',deptId:null}},update:{},create:{key,value,scope:'GLOBAL'}})
-  console.log('✅  Settings seeded\n')
+  for(const [key,value] of[['shortage_threshold','75'],['attendance_lock_days','7'],['app_name','AttendEase']]){
+  const existing = await prisma.setting.findFirst({where:{key,scope:'GLOBAL',deptId:null}})
+  if(!existing) await prisma.setting.create({data:{key,value,scope:'GLOBAL',deptId:null}})
+}
   let dept=await prisma.department.findUnique({where:{code:'BCA'}})
   if(!dept)dept=await prisma.department.create({data:{name:'Bachelor of Computer Applications',code:'BCA',programmeType:'UG',totalYears:3,rollPrefix:'BC',examRollPrefix:'BS'}})
   if(!await prisma.user.findUnique({where:{username:'hod_bca'}})){
