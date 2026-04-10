@@ -15,13 +15,26 @@ export default function DepartmentsPage(){
   function openEdit(d:any){setEditing(d);setForm({name:d.name,code:d.code,programmeType:d.programmeType,totalYears:String(d.totalYears),rollPrefix:d.rollPrefix,examRollPrefix:d.examRollPrefix});setErr('');setShowModal(true)}
   async function save(){
     setSaving(true);setErr('')
-    const url=editing?`/api/departments/${editing.id}`:'/api/departments'
-    const method=editing?'PATCH':'POST'
-    const res=await fetch(url,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(form)})
-    const data=await res.json()
-    setSaving(false)
-    if(!res.ok){setErr(data.error||'Error');return}
-    setShowModal(false);load()
+    try {
+      const url = editing ? `/api/departments/${editing.id}` : '/api/departments'
+      const method = editing ? 'PATCH' : 'POST'
+      const res = await fetch(url, {
+        method,
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(form),
+      })
+      const data = await res.json().catch(() => ({error: 'Invalid server response'}))
+      setSaving(false)
+      if (!res.ok) {
+        setErr(data?.error || `Request failed ${res.status}`)
+        return
+      }
+      setShowModal(false)
+      load()
+    } catch (error:any) {
+      setSaving(false)
+      setErr(error?.message || 'Network error')
+    }
   }
   async function del(id:number){
     if(!confirm('Delete department? This will remove all related data.'))return
