@@ -17,7 +17,13 @@ export default function StudentsPage(){
     const p=new URLSearchParams()
     if(q)p.set('q',q)
     if(semId)p.set('semId',semId)
-    fetch(`/api/students?${p}`).then(r=>r.json()).then(d=>setStudents(Array.isArray(d)?d:[])).finally(()=>setLoading(false))
+    fetch(`/api/students?${p}`)
+      .then(async r => {
+        if (!r.ok) return []
+        return r.json().catch(() => [])
+      })
+      .then(d=>setStudents(Array.isArray(d)?d:[]))
+      .finally(()=>setLoading(false))
   },[q,semId])
   async function del(id:number){
     if(!confirm('Remove student?'))return

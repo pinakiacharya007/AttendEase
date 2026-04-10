@@ -8,15 +8,31 @@ export default function TeachersPage(){
   const [form,setForm]=useState({name:'',username:'',password:'',email:'',phone:''})
   const [saving,setSaving]=useState(false)
   const [err,setErr]=useState('')
-  const load=()=>fetch('/api/users?role=TEACHER').then(r=>r.json()).then(d=>setTeachers(Array.isArray(d)?d:[])).finally(()=>setLoading(false))
-  useEffect(()=>{load()},[])
+  const load = async () => {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/users?role=TEACHER')
+      const data = res.ok ? await res.json().catch(() => []) : []
+      setTeachers(Array.isArray(data) ? data : [])
+    } catch (error) {
+      setTeachers([])
+    } finally {
+      setLoading(false)
+    }
+  }
+  useEffect(() => {load()}, [])
   async function save(){
     setSaving(true);setErr('')
-    const res=await fetch('/api/users',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...form,role:'TEACHER'})})
-    const data=await res.json()
-    setSaving(false)
-    if(!res.ok){setErr(data.error||'Error');return}
-    setShowModal(false);setForm({name:'',username:'',password:'',email:'',phone:''});load()
+    try {
+      const res = await fetch('/api/users',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...form,role:'TEACHER'})})
+      const data = await res.json().catch(() => ({error: 'Invalid server response'}))
+      setSaving(false)
+      if(!res.ok){setErr(data.error||`Error ${res.status}`);return}
+      setShowModal(false);setForm({name:'',username:'',password:'',email:'',phone:''});load()
+    } catch (error:any) {
+      setSaving(false)
+      setErr(error?.message || 'Network error')
+    }
   }
   async function toggle(t:any){
     await fetch(`/api/users/${t.id}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({isActive:!t.isActive})})

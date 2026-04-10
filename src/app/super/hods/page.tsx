@@ -15,12 +15,23 @@ export default function HodsPage() {
   const [err, setErr] = useState('')
   const [passErr, setPassErr] = useState('')
 
-  const load = () => {
+  const load = async () => {
     setLoading(true)
-    Promise.all([
-      fetch('/api/users?role=HOD').then(r => r.json()),
-      fetch('/api/departments').then(r => r.json())
-    ]).then(([u, d]) => {setUsers(u); setDepts(d)}).finally(() => setLoading(false))
+    try {
+      const [usersRes, deptRes] = await Promise.all([
+        fetch('/api/users?role=HOD'),
+        fetch('/api/departments')
+      ])
+      const usersData = usersRes.ok ? await usersRes.json().catch(() => []) : []
+      const deptsData = deptRes.ok ? await deptRes.json().catch(() => []) : []
+      setUsers(Array.isArray(usersData) ? usersData : [])
+      setDepts(Array.isArray(deptsData) ? deptsData : [])
+    } catch (error) {
+      setUsers([])
+      setDepts([])
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {load()}, [])
@@ -28,15 +39,20 @@ export default function HodsPage() {
   async function save() {
     if (!form.name || !form.username || !form.password) {setErr('Name, username and password are required'); return}
     setSaving(true); setErr('')
-    const res = await fetch('/api/users', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({...form, role: 'HOD', deptId: form.deptId ? Number(form.deptId) : undefined})
-    })
-    const data = await res.json()
-    setSaving(false)
-    if (!res.ok) {setErr(data.error || 'Error'); return}
-    setShowModal(false); load()
+    try {
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({...form, role: 'HOD', deptId: form.deptId ? Number(form.deptId) : undefined})
+      })
+      const data = await res.json().catch(() => ({error: 'Invalid server response'}))
+      setSaving(false)
+      if (!res.ok) {setErr(data.error || `Error ${res.status}`); return}
+      setShowModal(false); load()
+    } catch (error:any) {
+      setSaving(false)
+      setErr(error?.message || 'Network error')
+    }
   }
 
   async function changePassword() {

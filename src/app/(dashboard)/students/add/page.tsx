@@ -44,15 +44,20 @@ export default function AddStudentPage() {
       setErr('Name, roll numbers and semester are required'); return
     }
     setSaving(true); setErr('')
-    const res = await fetch('/api/students', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({...form, yearOfStudy: yearOfStudy || 1})
-    })
-    const data = await res.json()
-    setSaving(false)
-    if (!res.ok) {setErr(data.error || 'Error saving student'); return}
-    router.push('/students')
+    try {
+      const res = await fetch('/api/students', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({...form, yearOfStudy: yearOfStudy || 1})
+      })
+      const data = await res.json().catch(() => ({error: 'Invalid server response'}))
+      setSaving(false)
+      if (!res.ok) {setErr(data.error || `Error ${res.status}`); return}
+      router.push('/students')
+    } catch (error:any) {
+      setSaving(false)
+      setErr(error?.message || 'Network error')
+    }
   }
 
   // Group sems by academic year for display

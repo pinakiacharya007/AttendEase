@@ -4,6 +4,19 @@ import {NextResponse} from 'next/server'
 import {getServerSession} from 'next-auth'
 import {authOptions} from '@/lib/auth'
 import {prisma} from '@/lib/prisma'
+
+export async function GET() {
+  const s = await getServerSession(authOptions)
+  if (!s) return NextResponse.json({error: 'Unauthorized'}, {status: 401})
+
+  const userId = Number(s.user.id)
+  const notifications = await prisma.notification.findMany({
+    where: {userId},
+    orderBy: {createdAt: 'desc'},
+  })
+  return NextResponse.json(notifications)
+}
+
 export async function PATCH(_:Request,{params}:{params:{id:string}}){
   const s=await getServerSession(authOptions)
   if(!s)return NextResponse.json({error:'Unauthorized'},{status:401})

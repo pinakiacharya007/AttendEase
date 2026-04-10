@@ -4,6 +4,37 @@ import {NextResponse} from 'next/server'
 import {getServerSession} from 'next-auth'
 import {authOptions} from '@/lib/auth'
 import {prisma} from '@/lib/prisma'
+
+export async function GET(req: Request) {
+  const s = await getServerSession(authOptions)
+  if (!s) return NextResponse.json({error: 'Unauthorized'}, {status: 401})
+
+  const params = new URL(req.url).searchParams
+  const q = params.get('q')?.trim()
+  const semId = params.get('semId')
+  const where: any = {}
+
+  if (s.user.role !== 'SUPER_ADMIN') {
+    if (!s.user.deptId) return NextResponse.json([], {status: 200})
+    where.deptId = Number(s.user.deptId)
+  }
+  if (semId) where.semId = Number(semId)
+  if (q) {
+    where.OR = [
+      {name: {contains: q, mode: 'insensitive'}},
+      {rollNo: {contains: q, mode: 'insensitive'}},
+      {examRoll: {contains: q, mode: 'insensitive'}},
+    ]
+  }
+
+  const students = await prisma.student.findMany({
+    where,
+    orderBy: {rollNo: 'asc'},
+    include: {semester: true, department: true},
+  })
+  return NextResponse.json(students)
+}
+
 export async function POST(req:Request){
   const s=await getServerSession(authOptions)
   if(!s||s.user.role==='TEACHER')return NextResponse.json({error:'Forbidden'},{status:403})
