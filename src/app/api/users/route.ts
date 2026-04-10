@@ -25,7 +25,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions)
-  if (!session || session.user.role !== 'SUPER_ADMIN')
+  if (!session || !['SUPER_ADMIN', 'HOD'].includes(session.user.role))
     return NextResponse.json({error: 'Forbidden'}, {status: 403})
 
   const body = await req.json()
@@ -38,6 +38,18 @@ export async function POST(req: Request) {
     return NextResponse.json({error: 'Invalid role'}, {status: 400})
   }
 
+  if (session.user.role === 'HOD' && role !== 'TEACHER') {
+    return NextResponse.json({error: 'HOD can only create teachers'}, {status: 403})
+  }
+
+  const deptId = session.user.role === 'HOD'
+    ? Number(session.user.deptId)
+    : body.deptId ? Number(body.deptId) : undefined
+
+  if (!deptId) {
+    return NextResponse.json({error: 'Department is required'}, {status: 400})
+  }
+
   try {
     const user = await prisma.user.create({
       data: {
@@ -47,7 +59,7 @@ export async function POST(req: Request) {
         email: body.email || undefined,
         phone: body.phone || undefined,
         role,
-        deptId: body.deptId ? Number(body.deptId) : undefined,
+        deptId,
       },
     })
     return NextResponse.json({
