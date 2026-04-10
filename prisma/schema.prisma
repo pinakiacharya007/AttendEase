@@ -23,62 +23,59 @@ model University {
 }
 
 model Department {
-  id             Int           @id @default(autoincrement())
+  id             Int            @id @default(autoincrement())
   name           String
-  code           String        @unique
-  programmeType  ProgrammeType @default(UG)
-  totalYears     Int           @default(3)
+  code           String         @unique
+  programmeType  ProgrammeType  @default(UG)
+  totalYears     Int            @default(3)
   rollPrefix     String
   examRollPrefix String
-  hodId          Int?          @unique
-  isActive       Boolean       @default(true)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-
-  hod           User?          @relation("DeptHOD", fields: [hodId], references: [id])
-  users         User[]         @relation("DeptUsers")
-  students      Student[]
-  subjects      Subject[]
-  academicYears AcademicYear[]
-  semesters     Semester[]
-  holidays      Holiday[]
+  hodId          Int?           @unique
+  isActive       Boolean        @default(true)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  academicYears  AcademicYear[]
+  hod            User?          @relation("DeptHOD", fields: [hodId], references: [id])
+  holidays       Holiday[]
+  semesters      Semester[]
+  students       Student[]
+  subjects       Subject[]
+  users          User[]         @relation("DeptUsers")
 
   @@map("departments")
 }
 
 model User {
-  id           Int       @id @default(autoincrement())
-  name         String
-  email        String?   @unique
-  username     String    @unique
-  passwordHash String
-  role         UserRole  @default(TEACHER)
-  deptId       Int?
-  phone        String?
-  isActive     Boolean   @default(true)
-  lastLoginAt  DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-
-  department       Department?    @relation("DeptUsers", fields: [deptId], references: [id])
-  hodOfDept        Department?    @relation("DeptHOD")
-  subjectsTaught   Subject[]
-  attendanceMarked Attendance[]
-  notifications    Notification[]
+  id               Int            @id @default(autoincrement())
+  name             String
+  email            String?        @unique
+  username         String         @unique
+  passwordHash     String
+  role             UserRole       @default(TEACHER)
+  deptId           Int?
+  phone            String?
+  isActive         Boolean        @default(true)
+  lastLoginAt      DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
   aiLogs           AiLog[]
+  attendanceMarked Attendance[]
+  hodOfDept        Department?    @relation("DeptHOD")
+  notifications    Notification[]
+  subjectsTaught   Subject[]
+  department       Department?    @relation("DeptUsers", fields: [deptId], references: [id])
 
   @@map("users")
 }
 
 model AcademicYear {
-  id        Int      @id @default(autoincrement())
-  deptId    Int
-  label     String
-  startDate DateTime
-  endDate   DateTime
-  isCurrent Boolean  @default(false)
-  createdAt DateTime @default(now())
-
+  id         Int        @id @default(autoincrement())
+  deptId     Int
+  label      String
+  startDate  DateTime
+  endDate    DateTime
+  isCurrent  Boolean    @default(false)
+  createdAt  DateTime   @default(now())
   department Department @relation(fields: [deptId], references: [id], onDelete: Cascade)
   semesters  Semester[]
 
@@ -87,48 +84,46 @@ model AcademicYear {
 }
 
 model Semester {
-  id             Int      @id @default(autoincrement())
+  id             Int          @id @default(autoincrement())
   deptId         Int
   academicYearId Int
   semNumber      Int
   yearOfStudy    Int
   startDate      DateTime
   endDate        DateTime
-  isActive       Boolean  @default(false)
-  createdAt      DateTime @default(now())
-
-  department   Department   @relation(fields: [deptId], references: [id], onDelete: Cascade)
-  academicYear AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
-  subjects     Subject[]
-  students     Student[]
+  isActive       Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  department     Department   @relation(fields: [deptId], references: [id], onDelete: Cascade)
+  students       Student[]
+  subjects       Subject[]
 
   @@unique([deptId, semNumber, academicYearId])
   @@map("semesters")
 }
 
 model Subject {
-  id        Int      @id @default(autoincrement())
-  deptId    Int
-  semId     Int
-  code      String
-  name      String
-  credits   Int      @default(4)
-  teacherId Int?
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  department Department  @relation(fields: [deptId], references: [id], onDelete: Cascade)
-  semester   Semester    @relation(fields: [semId], references: [id], onDelete: Cascade)
-  teacher    User?       @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  id         Int          @id @default(autoincrement())
+  deptId     Int
+  semId      Int
+  code       String
+  name       String
+  credits    Int          @default(4)
+  teacherId  Int?
+  isActive   Boolean      @default(true)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
   attendance Attendance[]
+  department Department   @relation(fields: [deptId], references: [id], onDelete: Cascade)
+  semester   Semester     @relation(fields: [semId], references: [id], onDelete: Cascade)
+  teacher    User?        @relation(fields: [teacherId], references: [id])
 
   @@unique([deptId, semId, code])
   @@map("subjects")
 }
 
 model Student {
-  id            Int       @id @default(autoincrement())
+  id            Int          @id @default(autoincrement())
   deptId        Int
   semId         Int
   rollNo        String
@@ -142,13 +137,12 @@ model Student {
   dateOfBirth   DateTime?
   gender        Gender?
   yearOfStudy   Int
-  isActive      Boolean   @default(true)
-  enrolledAt    DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  department Department   @relation(fields: [deptId], references: [id], onDelete: Cascade)
-  semester   Semester     @relation(fields: [semId], references: [id], onDelete: Restrict)
-  attendance Attendance[]
+  isActive      Boolean      @default(true)
+  enrolledAt    DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  attendance    Attendance[]
+  department    Department   @relation(fields: [deptId], references: [id], onDelete: Cascade)
+  semester      Semester     @relation(fields: [semId], references: [id])
 
   @@unique([deptId, rollNo])
   @@unique([deptId, examRoll])
@@ -167,23 +161,21 @@ model Attendance {
   remarks    String?
   createdAt  DateTime         @default(now())
   updatedAt  DateTime         @updatedAt
-
-  student  Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  subject  Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  markedBy User    @relation(fields: [markedById], references: [id], onDelete: Restrict)
+  markedBy   User             @relation(fields: [markedById], references: [id])
+  student    Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subject    Subject          @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 
   @@unique([studentId, subjectId, date])
   @@map("attendance")
 }
 
 model Holiday {
-  id        Int      @id @default(autoincrement())
-  deptId    Int?
-  date      DateTime
-  reason    String
-  isGlobal  Boolean  @default(false)
-  createdAt DateTime @default(now())
-
+  id         Int         @id @default(autoincrement())
+  deptId     Int?
+  date       DateTime
+  reason     String
+  isGlobal   Boolean     @default(false)
+  createdAt  DateTime    @default(now())
   department Department? @relation(fields: [deptId], references: [id], onDelete: Cascade)
 
   @@map("holidays")
@@ -208,8 +200,7 @@ model AiLog {
   actionTaken  String?
   success      Boolean  @default(true)
   createdAt    DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("ai_logs")
 }
@@ -223,8 +214,7 @@ model Notification {
   link      String?
   isRead    Boolean          @default(false)
   createdAt DateTime         @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("notifications")
 }
